@@ -44,40 +44,46 @@
 <?php
 
 session_start();
-	include'connect.php';
+include 'connect.php';
 
-	
-	if(isset($_POST['signin']))
-	{
-		$username= isset($_POST['Usname'])? $_POST['Usname']:"";
-		$email= isset($_POST['email']) ? $_POST['email']:"";
-		$password= isset($_POST['pass']) ? $_POST['pass']:"";
-		
-		 
-		$sql="SELECT * FROM admin WHERE U_name='$username' AND email='$email' AND password='$password'";		
-		$result=mysqli_query($conn,$sql);
-		
-		if(mysqli_num_rows($result)==1)
-		{
-			$_SESSION['Usname'] = $username;
-			
-			header("location:AdminDashBoard.php");
-		}
-		
-		else
-		{
-			
-			
-			echo '<script type="text/JavaScript"> 
-    		 		alert("Invalid Username , Email or Password Try agin!");
-     				</script>';
-		}
-			
-		
-		
-	}
-	
-	
+if(isset($_POST['signin']))
+{
+    $username = isset($_POST['Usname']) ? $_POST['Usname'] : "";
+    $email = isset($_POST['email']) ? $_POST['email'] : "";
+    $password = isset($_POST['pass']) ? $_POST['pass'] : "";
+    
+    // Use prepared statement to prevent SQL injection
+    $sql = "SELECT * FROM admin WHERE U_name = ? AND email = ? AND password = ?";
+    $stmt = mysqli_prepare($conn, $sql);
+    
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, "sss", $username, $email, $password);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        if(mysqli_num_rows($result) == 1)
+        {
+            $_SESSION['Usname'] = $username;
+            $_SESSION['user_role'] = 'admin';
+            mysqli_stmt_close($stmt);
+            header("location:AdminDashBoard.php");
+            exit();
+        }
+        else
+        {
+            echo '<script type="text/JavaScript"> 
+                    alert("Invalid Username, Email or Password. Try again!");
+                  </script>';
+        }
+        
+        mysqli_stmt_close($stmt);
+    } else {
+        echo '<script type="text/JavaScript"> 
+                alert("Database error. Please try again!");
+              </script>';
+    }
+}
+
 ?>
 </body>
 </html>

@@ -19,11 +19,12 @@ $total_pages = ceil($total_products / $products_per_page);
 $sql_featured = "SELECT image_path FROM featured_images";
 $result_featured = mysqli_query($conn, $sql_featured);
 
-
-
-// Fetch products for the current page
-$sql = "SELECT * FROM clenser LIMIT $offset, $products_per_page";
-$result = mysqli_query($conn, $sql);
+// Fetch products for the current page using prepared statement
+$sql = "SELECT * FROM clenser LIMIT ?, ?";
+$stmt = mysqli_prepare($conn, $sql);
+mysqli_stmt_bind_param($stmt, "ii", $offset, $products_per_page);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
 ?>
 
 <!DOCTYPE html>

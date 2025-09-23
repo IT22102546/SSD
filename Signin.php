@@ -3,22 +3,43 @@ session_start();
 include 'connect.php';
 
 if (isset($_POST['signin'])) {
-    $username = isset($_POST['Usname']) ? $_POST['Usname'] : "";
-    $email = isset($_POST['email']) ? $_POST['email'] : "";
+    $username = isset($_POST['Usname']) ? trim($_POST['Usname']) : "";
+    $email = isset($_POST['email']) ? trim($_POST['email']) : "";
     $password = isset($_POST['pass']) ? $_POST['pass'] : "";
 
-    $sql = "SELECT * FROM customer WHERE U_name='$username' AND email='$email' AND password='$password'";
-    $result = mysqli_query($conn, $sql);
-
-    if (mysqli_num_rows($result) == 1) {
-        $row = mysqli_fetch_assoc($result);
-        $_SESSION['Usname'] = $username;
-        $_SESSION['customerID'] = $row['CID']; 
-        header("location:CusHome.php");
+    // Validate inputs
+    if (empty($username) || empty($email) || empty($password)) {
+        echo '<script type="text/javascript"> 
+            alert("All fields are required!");
+        </script>';
         exit();
+    }
+
+    // Use prepared statement to prevent SQL injection
+    $sql = "SELECT * FROM customer WHERE U_name = ? AND email = ? AND password = ?";
+    $stmt = mysqli_prepare($conn, $sql);
+    
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, "sss", $username, $email, $password);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+
+        if (mysqli_num_rows($result) == 1) {
+            $row = mysqli_fetch_assoc($result);
+            $_SESSION['Usname'] = $username;
+            $_SESSION['customerID'] = $row['CID']; 
+            header("location: CusHome.php");
+            exit();
+        } else {
+            echo '<script type="text/javascript"> 
+                alert("Invalid Username, Email, or Password. Try again!");
+            </script>';
+        }
+        
+        mysqli_stmt_close($stmt);
     } else {
         echo '<script type="text/javascript"> 
-            alert("Invalid Username, Email, or Password. Try again!");
+            alert("Database error. Please try again later.");
         </script>';
     }
 }
