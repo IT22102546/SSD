@@ -1,0 +1,153 @@
+@font-face {
+    font-family: 'Verlag';
+    src: url('path/to/Verlag-Regular.woff2') format('woff2'),
+         url('path/to/Verlag-Regular.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Verlag';
+    src: url('path/to/Verlag-Bold.woff2') format('woff2'),
+         url('path/to/Verlag-Bold.woff') format('woff');
+    font-weight: bold;
+    font-style: normal;
+}
+
+body {
+    font-family: 'Verlag', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    color: #333;
+    background-color: #255269; /* Updated background color */
+}
+
+
+
+.about-section {
+    padding: 50px 0;
+    text-align: center;
+}
+
+.about-section h2 {
+    font-size: 36px;
+    margin-bottom: 20px;
+    color: #fff; /* Changed from green to white */
+    font-family: 'Georgia', serif;
+}
+
+.about-content {
+    display: flex;
+    align-items: center;
+}
+
+.about-text {
+    max-width: 600px;
+}
+
+.about-text h3 {
+    font-size: 28px;
+    color: #fff; /* Changed from green to white */
+    margin-bottom: 10px;
+    font-family: 'Georgia', serif;
+}
+
+.about-text p {
+    font-size: 14px;
+    margin-bottom: 20px;
+    color:#fff;
+}
+
+.about-image img {
+    max-width: 70%;
+    height: auto;
+    margin-left: 20px;
+}
+
+.read-more {
+    text-decoration: none;
+    color: #84c32f;
+    font-size: 16px;
+}
+
+@media (max-width: 768px) {
+    .about-content {
+        flex-direction: column-reverse; /* Place image first */
+        text-align: center;             /* Center align content */
+    }
+
+    .about-image img {
+        margin-left: 0;
+        margin-bottom: 20px;            /* Add margin below the image */
+        max-width: 90%;                 /* Adjust image size for smaller screens */
+    }
+
+    .about-text {
+        max-width: 100%;
+    }
+}
+
+.services-section {
+    padding: 50px 0;
+    text-align: center;
+}
+
+.services-section h2 {
+    font-size: 36px;
+    margin-bottom: 20px;
+    color: #fff; /* Changed from green to white */
+}
+
+.services-content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.service {
+    max-width: 300px;
+    margin: 10px;
+    text-align: center;
+}
+.service p{
+    color:#fff;
+    justify-content: center;
+}
+
+.service-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 70px;
+    height: 70px;
+    background-color: #84c32f;
+    border-radius: 50%;
+    margin: 0 auto 10px auto;
+}
+
+.service-icon i {
+    font-size: 30px;
+    color: white;
+}
+
+.additional-content {
+    display: flex;
+    align-items: center;
+    margin-top: 50px;
+}
+
+.additional-text {
+    max-width: 600px;
+}
+
+.additional-text h3 {
+    font-size: 28px;
+    color: #fff; /* Changed from green to white */
+    margin-bottom: 10px;
+}
+
+.additional-image img {
+    max-width: 100%;
+    height: auto;
+    margin-left: 20px;
+}

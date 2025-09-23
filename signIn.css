@@ -1,0 +1,111 @@
+body, html {
+  height: 100%;
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* Prevents horizontal scrolling */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: black;
+}
+
+.reg {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 220px;
+  background: rgba(153, 153, 153, 0.4); 
+  color: #f1f1f1;
+  width: 45%;
+  padding: 20px;
+  border-radius: 15px;
+}
+
+#back {
+  background-image: url("Logo/hi.png");
+  height: 100vh; 
+  background-repeat: no-repeat;
+  background-size: cover; 
+  position: relative;
+}
+
+#top {
+  font-family: "Times New Roman", Times, serif;
+  color: #84c32f;
+  font-size: 24px;
+  text-align: center;
+  margin-bottom: 20px; /* Add margin for spacing */
+}
+
+#btn {
+  background-color: #84c32f;
+  color: white;
+  padding: 16px 20px;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  opacity: 0.9;
+  border-radius: 15px;
+  font-size: 18px;
+}
+
+.wdth {
+  height: 35px;
+  width: 100%;
+  background-color: #ddd;
+  border: none;
+  border-radius: 15px;
+  text-align: center;
+  font-size: 16px;
+}
+
+/* Media Query for Tablets */
+@media screen and (max-width: 768px) {
+  .reg {
+    width: 60%;
+    margin-top: 150px;
+    padding: 20px;
+  }
+
+  #top {
+    font-size: 22px;
+  }
+
+  #btn {
+    padding: 16px 20px;
+    font-size: 18px;
+  }
+
+  .wdth {
+    height: 35px;
+    font-size: 16px;
+  }
+}
+
+/* Media Query for Mobile Devices */
+@media screen and (max-width: 480px) {
+  .reg {
+    width: 80%;
+    margin-top: 120px;
+    padding: 20px;
+  }
+
+  #top {
+    font-size: 20px;
+  }
+
+  #btn {
+    padding: 16px 20px;
+    font-size: 18px;
+  }
+
+  .wdth {
+    height: 35px;
+    font-size: 16px;
+  }
+}
