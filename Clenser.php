@@ -172,7 +172,7 @@ if (isset($_SESSION['error_message'])) {
             </div>
         </div>
 
-        <a href="addcleanser.php" class="btn btn-add">Add New Cleanser</a>
+        <a href="AddClensers.php" class="btn btn-add">Add New Cleanser</a>
 
         <?php
         $sql = "SELECT * FROM clenser ORDER BY Cl_ID DESC";
