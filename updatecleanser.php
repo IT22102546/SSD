@@ -100,13 +100,17 @@ if (isset($_POST['submit'])) {
             mkdir('uploads', 0755, true);
         }
         
+        // Add .htaccess protection to uploads directory
+        $htaccess_content = "Order Deny,Allow\nDeny from all\n<FilesMatch '\.(jpg|jpeg|png|gif|webp)$'>\nAllow from all\n</FilesMatch>";
+        file_put_contents('uploads/.htaccess', $htaccess_content);
+        
         // Move uploaded file securely
         if (move_uploaded_file($file['tmp_name'], $target_path)) {
             // Secure deletion of old image
             if (!empty($current_image) && $current_image !== $image) {
                 $old_image_path = "uploads/" . $current_image;
                 
-                // Security validation before deletion
+                // Enhanced security validation before deletion
                 $real_old_path = realpath($old_image_path);
                 $real_uploads_path = realpath('uploads/');
                 
@@ -116,9 +120,19 @@ if (isset($_POST['submit'])) {
                     strpos($real_old_path, $real_uploads_path) === 0 &&
                     is_file($real_old_path)) {
                     
-                    // Additional safety check: verify the filename matches expected pattern
-                    if (preg_match('/^clenser_[a-zA-Z0-9]+[_a-zA-Z0-9-]*\.(jpg|jpeg|png|gif|webp)$/i', $current_image)) {
-                        unlink($real_old_path);
+                    // More secure filename validation
+                    if (preg_match('/^clenser_[a-zA-Z0-9]+[_a-zA-Z0-9-]*\.(jpg|jpeg|png|gif|webp)$/i', $current_image) &&
+                        basename($real_old_path) === $current_image) {
+                        
+                        // Additional check: verify it's actually an image file
+                        $allowed_image_mimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                        $file_info = finfo_open(FILEINFO_MIME_TYPE);
+                        $mime_type = finfo_file($file_info, $real_old_path);
+                        finfo_close($file_info);
+                        
+                        if (in_array($mime_type, $allowed_image_mimes)) {
+                            unlink($real_old_path);
+                        }
                     }
                 }
             }
@@ -152,8 +166,17 @@ if (isset($_POST['submit'])) {
                 if ($real_new_path && 
                     $real_uploads_path && 
                     strpos($real_new_path, $real_uploads_path) === 0 &&
-                    is_file($real_new_path)) {
-                    unlink($real_new_path);
+                    is_file($real_new_path) &&
+                    preg_match('/^clenser_[a-zA-Z0-9]+[_a-zA-Z0-9-]*\.(jpg|jpeg|png|gif|webp)$/i', $image) &&
+                    basename($real_new_path) === $image) {
+                    
+                    $file_info = finfo_open(FILEINFO_MIME_TYPE);
+                    $mime_type = finfo_file($file_info, $real_new_path);
+                    finfo_close($file_info);
+                    
+                    if (in_array($mime_type, $allowed_image_mimes)) {
+                        unlink($real_new_path);
+                    }
                 }
             }
         }
@@ -171,8 +194,17 @@ if (isset($_POST['submit'])) {
             if ($real_new_path && 
                 $real_uploads_path && 
                 strpos($real_new_path, $real_uploads_path) === 0 &&
-                is_file($real_new_path)) {
-                unlink($real_new_path);
+                is_file($real_new_path) &&
+                preg_match('/^clenser_[a-zA-Z0-9]+[_a-zA-Z0-9-]*\.(jpg|jpeg|png|gif|webp)$/i', $image) &&
+                basename($real_new_path) === $image) {
+                
+                $file_info = finfo_open(FILEINFO_MIME_TYPE);
+                $mime_type = finfo_file($file_info, $real_new_path);
+                finfo_close($file_info);
+                
+                if (in_array($mime_type, $allowed_image_mimes)) {
+                    unlink($real_new_path);
+                }
             }
         }
     }
