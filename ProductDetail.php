@@ -46,14 +46,18 @@ if (isset($_GET['id'])) {
 } else {
     $error = "No product ID provided.";
 }
-?>
 
+// Sanitize redirect URLs
+$homeUrl = $isLoggedIn ? 'CusHome.php' : 'index.php';
+$redirectParam = urlencode("ProductDetail.php?id=" . $productId);
+$buyNowRedirectParam = urlencode("buyNow.php?id=" . $productId);
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Product Detail - <?php echo isset($product['Clenser_name']) ? htmlspecialchars($product['Clenser_name']) : 'Product'; ?></title>
+    <title>Product Detail - <?php echo isset($product['Clenser_name']) ? htmlspecialchars($product['Clenser_name'], ENT_QUOTES, 'UTF-8') : 'Product'; ?></title>
     <link rel="icon" href="Logo/logo.png" type="image/x-icon">
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -224,7 +228,7 @@ if (isset($_GET['id'])) {
             </div>
             <nav>
                 <ul>
-                    <li><a href="<?php echo $isLoggedIn ? 'CusHome.php' : 'index.php'; ?>">Home</a></li>
+                    <li><a href="<?php echo htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8'); ?>">Home</a></li>
                     <li><a href="Product.php">Products</a></li>
                     <li><a href="About.php">About</a></li>
                     <li><a href="contactus.php">Contact</a></li>
@@ -232,7 +236,7 @@ if (isset($_GET['id'])) {
             </nav>
             <div class="header-buttons">
                 <?php if ($isLoggedIn): ?>
-                    <span class="welcome-message">Welcome, <?php echo htmlspecialchars($username); ?></span>
+                    <span class="welcome-message">Welcome, <?php echo htmlspecialchars($username, ENT_QUOTES, 'UTF-8'); ?></span>
                     <a href="cart.php" class="btn">Cart</a>
                     <a href="logout.php" class="btn">Log Out</a>
                 <?php else: ?>
@@ -252,57 +256,57 @@ if (isset($_GET['id'])) {
     <div class="container product-container">
         <?php if (!empty($error)): ?>
             <div class="error-message">
-                <?php echo htmlspecialchars($error); ?>
+                <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
                 <p><a href="Product.php" class="btn" style="margin-top: 15px;">Back to Products</a></p>
             </div>
         <?php elseif ($product): ?>
             <div class="product-image">
-                <img src="uploads/<?php echo htmlspecialchars($product['image']); ?>" 
-                     alt="<?php echo htmlspecialchars($product['Clenser_name']); ?>"
+                <img src="uploads/<?php echo htmlspecialchars($product['image'], ENT_QUOTES, 'UTF-8'); ?>" 
+                     alt="<?php echo htmlspecialchars($product['Clenser_name'], ENT_QUOTES, 'UTF-8'); ?>"
                      onerror="this.src='Logo/logo.png'">
             </div>
             <div class="product-details">
-                <h1><?php echo htmlspecialchars($product['Clenser_name']); ?></h1>
+                <h1><?php echo htmlspecialchars($product['Clenser_name'], ENT_QUOTES, 'UTF-8'); ?></h1>
                 
                 <p class="price">Rs. <?php echo number_format($product['Clenser_price'], 2); ?></p>
                 
-                <p><strong>Size:</strong> <?php echo htmlspecialchars($product['Clenser_size']); ?></p>
+                <p><strong>Size:</strong> <?php echo htmlspecialchars($product['Clenser_size'], ENT_QUOTES, 'UTF-8'); ?></p>
                 
                 <?php if (!empty($product['description'])): ?>
                     <div class="product-description">
-                        <p><?php echo htmlspecialchars($product['description']); ?></p>
+                        <p><?php echo htmlspecialchars($product['description'], ENT_QUOTES, 'UTF-8'); ?></p>
                     </div>
                 <?php endif; ?>
 
                 <div class="button-container">
                     <?php if ($isLoggedIn): ?>
                         <form action="addToCart.php" method="POST" style="display: inline;">
-                            <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($product['Cl_ID']); ?>">
-                            <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($userId); ?>">
-                            <input type="hidden" name="p_name" value="<?php echo htmlspecialchars($product['Clenser_name']); ?>">
-                            <input type="hidden" name="price" value="<?php echo htmlspecialchars($product['Clenser_price']); ?>">
-                            <input type="hidden" name="size" value="<?php echo htmlspecialchars($product['Clenser_size']); ?>">
-                            <input type="hidden" name="image" value="<?php echo htmlspecialchars($product['image']); ?>">
-                            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                            <input type="hidden" name="product_id" value="<?php echo htmlspecialchars($product['Cl_ID'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($userId, ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="hidden" name="p_name" value="<?php echo htmlspecialchars($product['Clenser_name'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="hidden" name="price" value="<?php echo htmlspecialchars($product['Clenser_price'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="hidden" name="size" value="<?php echo htmlspecialchars($product['Clenser_size'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="hidden" name="image" value="<?php echo htmlspecialchars($product['image'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
                             <button type="submit" class="btn" onclick="return confirm('Add this product to your cart?')">
                                 Add to Cart
                             </button>
                         </form>
                     <?php else: ?>
-                        <a href="Signin.php?redirect=ProductDetail.php?id=<?php echo urlencode($productId); ?>" 
+                        <a href="Signin.php?redirect=<?php echo htmlspecialchars($redirectParam, ENT_QUOTES, 'UTF-8'); ?>" 
                            class="btn btn-login">
                             Log in to Add to Cart
                         </a>
                     <?php endif; ?>
 
                     <?php if ($isLoggedIn): ?>
-                        <a href="buyNow.php?id=<?php echo htmlspecialchars($product['Cl_ID']); ?>" 
+                        <a href="buyNow.php?id=<?php echo htmlspecialchars($product['Cl_ID'], ENT_QUOTES, 'UTF-8'); ?>" 
                            class="btn btn-buy"
                            onclick="return confirm('Proceed to checkout with this product?')">
                             Buy Now
                         </a>
                     <?php else: ?>
-                        <a href="Signin.php?redirect=buyNow.php?id=<?php echo urlencode($productId); ?>" 
+                        <a href="Signin.php?redirect=<?php echo htmlspecialchars($buyNowRedirectParam, ENT_QUOTES, 'UTF-8'); ?>" 
                            class="btn btn-buy">
                             Login to Buy Now
                         </a>
@@ -325,7 +329,7 @@ if (isset($_GET['id'])) {
             <div class="footer-section">
                 <h3>Quick Links</h3>
                 <ul>
-                    <li><a href="<?php echo $isLoggedIn ? 'CusHome.php' : 'index.php'; ?>">Home</a></li>
+                    <li><a href="<?php echo htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8'); ?>">Home</a></li>
                     <li><a href="Product.php">Products</a></li>
                     <li><a href="About.php">About</a></li>
                     <li><a href="contactus.php">Contact</a></li>

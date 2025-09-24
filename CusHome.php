@@ -38,17 +38,15 @@ $result = mysqli_stmt_get_result($stmt);
     <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css">
     <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
 </head>
 <body>
     <header>
         <div class="container header-container">
             <div class="logo">
-                <img src="Logo/logo.png">
+                <img src="Logo/logo.png" alt="Company Logo">
             </div>
             <nav>
                 <ul>
-                 
                     <li><a href="<?php echo $isLoggedIn ? 'CusHome.php' : 'index.php'; ?>">Home</a></li>
                     <li><a href="Product.php">Products</a></li>
                     <li><a href="About.php">About</a></li>
@@ -57,10 +55,9 @@ $result = mysqli_stmt_get_result($stmt);
             </nav>
             <div class="header-buttons">
                 <?php if ($isLoggedIn): ?>
-                    <span class="welcome-message">Welcome, <?php echo htmlspecialchars($username); ?></span>
+                    <span class="welcome-message">Welcome, <?php echo htmlspecialchars($username, ENT_QUOTES, 'UTF-8'); ?></span>
                     <a href="cart.php" class="btn">cart</a>
                     <a href="logout.php" class="btn">Log Out</a>
-                    
                 <?php else: ?>
                     <a href="Signin.php" class="btn">Log In</a>
                 <?php endif; ?>
@@ -76,181 +73,176 @@ $result = mysqli_stmt_get_result($stmt);
                 <a href="About.php" class="" style="color: #FFD700 ;  padding-left:25px;">Learn more</a>
             </div>
             <div class="banner-image">
-                <img src="uploads/bg2.jpg">
+                <img src="uploads/bg2.jpg" alt="Banner Image">
             </div>
         </div>
     </section>
 
-   
-<section class="featured-content">
-    <div class="container">
-        <div class="swiper-container">
-            <div class="swiper-wrapper">
-                <?php
-                if (mysqli_num_rows($result_featured) > 0) {
-                    while ($row_featured = mysqli_fetch_assoc($result_featured)) {
-                        echo '<div class="swiper-slide">';
-                        echo '<div class="featured-image">';
-                        echo '<img src="uploads/' . htmlspecialchars($row_featured['image_path']) . '" alt="Featured Image">';
-                        echo '</div>';
-                        echo '</div>';
+    <section class="featured-content">
+        <div class="container">
+            <div class="swiper-container">
+                <div class="swiper-wrapper">
+                    <?php
+                    if (mysqli_num_rows($result_featured) > 0) {
+                        while ($row_featured = mysqli_fetch_assoc($result_featured)) {
+                            echo '<div class="swiper-slide">';
+                            echo '<div class="featured-image">';
+                            echo '<img src="uploads/' . htmlspecialchars($row_featured['image_path'], ENT_QUOTES, 'UTF-8') . '" alt="Featured Image">';
+                            echo '</div>';
+                            echo '</div>';
+                        }
+                    } else {
+                        echo '<p>No featured images found.</p>';
                     }
-                } else {
-                    echo '<p>No featured images found.</p>';
-                }
-                ?>
+                    ?>
+                </div>
+
+                <div class="swiper-button-next"></div>
+                <div class="swiper-button-prev"></div>
             </div>
-
-            <div class="swiper-button-next"></div>
-            <div class="swiper-button-prev"></div>
         </div>
-    </div>
-</section>
+    </section>
 
-<script>
-     var swiper = new Swiper('.featured-content .container .swiper-container', {
-        loop: false,
-        slidesPerView: 1, // Show one image at a time
-        spaceBetween: 20, // Space between images
-        
-        navigation: {
-            nextEl: '.swiper-button-next',
-            prevEl: '.swiper-button-prev',
-        },
-        
-    });
-</script>
+    <script>
+        var swiper = new Swiper('.featured-content .container .swiper-container', {
+            loop: false,
+            slidesPerView: 1,
+            spaceBetween: 20,
+            navigation: {
+                nextEl: '.swiper-button-next',
+                prevEl: '.swiper-button-prev',
+            },
+        });
+    </script>
 
-
-
-    
     <section class="featured-products">
-    <div class="container">
-    <div class="heading-container">
-            <h2>Experience the Power of Rabbit Oil for Healthy Hair Growth</h2>
-            <p>Our Rabbit Oil is formulated with 100% natural ingredients, promoting hair growth and preventing hair fall. Discover the secret to luscious, healthy hair today.</p>
+        <div class="container">
+            <div class="heading-container">
+                <h2>Experience the Power of Rabbit Oil for Healthy Hair Growth</h2>
+                <p>Our Rabbit Oil is formulated with 100% natural ingredients, promoting hair growth and preventing hair fall. Discover the secret to luscious, healthy hair today.</p>
+            </div>
+            <div class="product-grid">
+                <div class="product-card">
+                    <img src="uploads/bg5.jpg" alt="Product 1">
+                    <h3>Nourish Your Hair with Rabbit Oil for Visible Results</h3>
+                    <p>Our Rabbit Oil is carefully crafted to provide deep nourishment, resulting in stronger, shinier hair.</p>
+                    <a href="CustomerClenser.php" class="link">Shop now</a>
+                </div>
+                <div class="product-card">
+                    <img src="uploads/bg5.jpg" alt="Product 2">
+                    <h3>Nourish Your Hair with Rabbit Oil for Visible Results</h3>
+                    <p>Experience the transformative power of our Rabbit Oil, solving all your hair care concerns.</p>
+                    <a href="#" class="link">Shop now</a>
+                </div>
+                <div class="product-card">
+                    <img src="uploads/bg5.jpg" alt="Product 3">
+                    <h3>Nourish Your Hair with Rabbit Oil for Visible Results</h3>
+                    <p>Our Rabbit Oil is a natural solution to revitalize dull and damaged hair, leaving it soft and manageable.</p>
+                    <a href="#" class="link">Shop now</a>
+                </div>
+            </div>
         </div>
-        <div class="product-grid">
-            <div class="product-card">
-                <img src="uploads/bg5.jpg" alt="Product 1">
-                <h3>Nourish Your Hair with Rabbit Oil for Visible Results</h3>
-                <p>Our Rabbit Oil is carefully crafted to provide deep nourishment, resulting in stronger, shinier hair.</p>
-                <a href="CustomerClenser.php" class="link">Shop now</a>
-            </div>
-            <div class="product-card">
-                <img src="uploads/bg5.jpg" alt="Product 2">
-                <h3>Nourish Your Hair with Rabbit Oil for Visible Results</h3>
-                <p>Experience the transformative power of our Rabbit Oil, solving all your hair care concerns.</p>
-                <a href="#" class="link">Shop now</a>
-            </div>
-            <div class="product-card">
-                <img src="uploads/bg5.jpg" alt="Product 3">
-                <h3>Nourish Your Hair with Rabbit Oil for Visible Results</h3>
-                <p>Our Rabbit Oil is a natural solution to revitalize dull and damaged hair, leaving it soft and manageable.</p>
-                <a href="#" class="link">Shop now</a>
-            </div>
-        </div>
-    </div>
-    <section class="products-footer">
+        
+        <section class="products-footer">
             <h3>Our Products</h3>
             <p>Discover our range of high-quality herbal cosmetic products.</p>
             <a href="CustomerClenser.php" class="view-all">View all</a>
-            <!-- Swiper -->
+            
             <div class="swiper-container">
                 <div class="swiper-wrapper">
-                <?php
-                if (mysqli_num_rows($result) > 0) {
-                    while ($row = mysqli_fetch_assoc($result)) {
-                        echo '<div class="card">';
-                        echo '<img src="uploads/' . htmlspecialchars($row['image']) . '" alt="Product">';
-                        echo '<h3>' . htmlspecialchars($row['Clenser_name']) . '</h3>';
-                        echo '<p>' . htmlspecialchars($row['Clenser_price']) . '</p>';
-                        echo '<a href="productDetail.php?id=' . $row['Cl_ID'] . '" class="btn-buy-now">Buy Now</a>';
-                        echo '</div>';
+                    <?php
+                    if (mysqli_num_rows($result) > 0) {
+                        while ($row = mysqli_fetch_assoc($result)) {
+                            $product_id = intval($row['Cl_ID']); // Sanitize ID
+                            echo '<div class="card">';
+                            echo '<img src="uploads/' . htmlspecialchars($row['image'], ENT_QUOTES, 'UTF-8') . '" alt="Product">';
+                            echo '<h3>' . htmlspecialchars($row['Clenser_name'], ENT_QUOTES, 'UTF-8') . '</h3>';
+                            echo '<p>' . htmlspecialchars($row['Clenser_price'], ENT_QUOTES, 'UTF-8') . '</p>';
+                            echo '<a href="productDetail.php?id=' . $product_id . '" class="btn-buy-now">Buy Now</a>';
+                            echo '</div>';
+                        }
+                    } else {
+                        echo '<p>No products found.</p>';
                     }
-                } else {
-                    echo '<p>No products found.</p>';
-                }
-                ?>
-               
+                    ?>
                 </div>
-                
             </div>
+            
             <div class="pagination">
                 <?php if ($page_number > 1): ?>
-                    <a href="?page=<?php echo $page_number - 1; ?>" class="btn">Previous</a>
+                    <a href="?page=<?php echo htmlspecialchars($page_number - 1, ENT_QUOTES, 'UTF-8'); ?>" class="btn">Previous</a>
                 <?php endif; ?>
 
                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                    <a href="?page=<?php echo $i; ?>" class="btn <?php if ($i == $page_number) echo 'active'; ?>"><?php echo $i; ?></a>
+                    <a href="?page=<?php echo htmlspecialchars($i, ENT_QUOTES, 'UTF-8'); ?>" class="btn <?php if ($i == $page_number) echo 'active'; ?>">
+                        <?php echo htmlspecialchars($i, ENT_QUOTES, 'UTF-8'); ?>
+                    </a>
                 <?php endfor; ?>
 
                 <?php if ($page_number < $total_pages): ?>
-                    <a href="?page=<?php echo $page_number + 1; ?>" class="btn">Next</a>
+                    <a href="?page=<?php echo htmlspecialchars($page_number + 1, ENT_QUOTES, 'UTF-8'); ?>" class="btn">Next</a>
                 <?php endif; ?>
             </div>
         </section>
-</section>
+    </section>
 
-<section class="exclusive-offers">
-    <div class="container">
-        <div class="text-content">
-            <h2>Get Your Exclusive Offers and Updates</h2>
-            <p>Sign up for our newsletter to receive exclusive offers and updates.</p>
+    <section class="exclusive-offers">
+        <div class="container">
+            <div class="text-content">
+                <h2>Get Your Exclusive Offers and Updates</h2>
+                <p>Sign up for our newsletter to receive exclusive offers and updates.</p>
+            </div>
+            <div class="btn-group">
+                <a href="contactus.php" class="btn btn-primary">Contact us</a>
+                <a href="About.php" class="btn btn-secondary">Learn more</a>
+            </div>
         </div>
-        <div class="btn-group">
-            <a href="contactus.php" class="btn btn-primary">Contact us</a>
-            <a href="About.php" class="btn btn-secondary">Learn more</a>
-        </div>
-    </div>
-</section>
+    </section>
 
-
-<footer>
-    <div class="footer-container">
-        <div class="footer-section logo-section">
-            <img src="Logo/logo.png" alt="Sulos Owshadham Herbal Health Care Logo">
+    <footer>
+        <div class="footer-container">
+            <div class="footer-section logo-section">
+                <img src="Logo/logo.png" alt="Sulos Owshadham Herbal Health Care Logo">
+            </div>
+            <div class="footer-section">
+                <h3>About us</h3>
+                <ul>
+                    <li><a href="Product.php">Products</a></li>
+                    <li><a href="contactus.php">Contact us</a></li>
+                    <li><a href="#">FAQ</a></li>
+                    <li><a href="#">Support</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Terms of use</h3>
+                <ul>
+                    <li><a href="#">Privacy policy</a></li>
+                    <li><a href="#">Customer service</a></li>
+                    <li><a href="#">Help</a></li>
+                    <li><a href="#">Support</a></li>
+                </ul>
+            </div>
+            <div class="footer-section subscribe-section">
+                <h3>Subscribe</h3>
+                <p>Join our mailing to receive updates and offers</p>
+                <input type="email" placeholder="Enter your email">
+                <button>Subscribe</button>
+            </div>
         </div>
-        <div class="footer-section">
-            <h3>About us</h3>
-            <ul>
-                <li><a href="Product.php">Products</a></li>
-                <li><a href="contactus.php">Contact us</a></li>
-                <li><a href="#">FAQ</a></li>
-                <li><a href="#">Support</a></li>
-            </ul>
+        <div class="footer-bottom">
+            <p>© 2024 Sulos Owshadham Herbal Health Care. All rights reserved.</p>
+            <div class="social-icons">
+                <a href="https://www.facebook.com/tamilocean1" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-facebook"></i>
+                </a>
+                <a href="https://www.instagram.com/sulosowshadham?igsh=YzljYTk1ODg3Zg==" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-instagram"></i>
+                </a>
+                <a href="https://wa.me/message/WVFLY3HNQOMCB1" target="_blank" rel="noopener noreferrer">
+                    <i class="fab fa-whatsapp"></i>
+                </a>
+            </div>
         </div>
-        <div class="footer-section">
-            <h3>Terms of use</h3>
-            <ul>
-                <li><a href="#">Privacy policy</a></li>
-                <li><a href="#">Customer service</a></li>
-                <li><a href="#">Help</a></li>
-                <li><a href="#">Support</a></li>
-            </ul>
-        </div>
-        <div class="footer-section subscribe-section">
-            <h3>Subscribe</h3>
-            <p>Join our mailing to receive updates and offers</p>
-            <input type="email" placeholder="Enter your email">
-            <button>Subscribe</button>
-        </div>
-    </div>
-    <div class="footer-bottom">
-        <p>© 2024 Sulos Owshadham Herbal Health Care. All rights reserved.</p>
-        <div class="social-icons">
-    <a href="https://www.facebook.com/tamilocean1" target="_blank" rel="noopener noreferrer">
-        <i class="fab fa-facebook"></i>
-    </a>
-    <a href="https://www.instagram.com/sulosowshadham?igsh=YzljYTk1ODg3Zg==" target="_blank" rel="noopener noreferrer">
-        <i class="fab fa-instagram"></i>
-    </a>
-    <a href="https://wa.me/message/WVFLY3HNQOMCB1" target="_blank" rel="noopener noreferrer">
-        <i class="fab fa-whatsapp"></i>
-    </a>
-</div>
-    </div>
-</footer>
-   
+    </footer>
 </body>
 </html>
