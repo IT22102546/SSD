@@ -5,8 +5,7 @@ session_start();
 $isLoggedIn = isset($_SESSION['Usname']);
 $username = $isLoggedIn ? $_SESSION['Usname'] : '';
 
-// Check if the user is logged in
-if (!isset($_SESSION['Usname'])) {
+if (!$isLoggedIn) {
     header("Location: Signin.php");
     exit();
 }
@@ -14,136 +13,107 @@ if (!isset($_SESSION['Usname'])) {
 // Handle image deletion
 if (isset($_POST['delete_image'])) {
     // Validate CSRF token
-    if (!isset($_POST['csrf_token']) || !isset($_SESSION['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+    if (
+        !isset($_POST['csrf_token']) ||
+        !isset($_SESSION['csrf_token']) ||
+        $_POST['csrf_token'] !== $_SESSION['csrf_token']
+    ) {
         die("CSRF token validation failed. Please go back and try again.");
     }
-    
+
     $image_id = intval($_POST['image_id']);
-    
     if ($image_id <= 0) {
         die("Invalid image ID");
     }
-    
-    // Fetch the image path using prepared statement
+
+    // Fetch the image path securely
     $sql_fetch_image = "SELECT image_path FROM featured_images WHERE id = ?";
     $stmt = mysqli_prepare($conn, $sql_fetch_image);
-    
     if (!$stmt) {
         error_log("Prepare failed: " . mysqli_error($conn));
         die("An error occurred. Please try again later.");
     }
-    
+
     mysqli_stmt_bind_param($stmt, "i", $image_id);
-    
     if (!mysqli_stmt_execute($stmt)) {
         error_log("Execute failed: " . mysqli_stmt_error($stmt));
         mysqli_stmt_close($stmt);
         die("An error occurred. Please try again later.");
     }
-    
-    $result_fetch_image = mysqli_stmt_get_result($stmt);
-    
-    if ($result_fetch_image && mysqli_num_rows($result_fetch_image) > 0) {
-        $row = mysqli_fetch_assoc($result_fetch_image);
-        $image_path = $row['image_path'];
-        
-        // SECURE FILE DELETION: Delete the image file from the server with validation
-        $file_path = 'uploads/' . $image_path;
-        if (secureDeleteFile($file_path, 'uploads')) {
-            error_log("Successfully deleted image: " . $file_path);
-        } else {
-            error_log("Failed to delete image: " . $file_path);
-            // Continue with database deletion even if file deletion fails
+
+    $result = mysqli_stmt_get_result($stmt);
+    if ($result && mysqli_num_rows($result) > 0) {
+        $row = mysqli_fetch_assoc($result);
+        $image_path = $row['image_path']; // filename only
+
+        // Securely delete file
+        if (!secureDeleteFile($image_path, __DIR__ . '/uploads')) {
+            error_log("Failed to delete image file: " . $image_path);
+            // Continue with DB deletion anyway
         }
-        
-        // Delete the image record using prepared statement
+
+        // Delete DB record
         $sql_delete_image = "DELETE FROM featured_images WHERE id = ?";
         $stmt_delete = mysqli_prepare($conn, $sql_delete_image);
-        
         if ($stmt_delete) {
             mysqli_stmt_bind_param($stmt_delete, "i", $image_id);
             if (mysqli_stmt_execute($stmt_delete)) {
-                // Regenerate CSRF token after successful action
                 $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                 mysqli_stmt_close($stmt_delete);
                 mysqli_stmt_close($stmt);
-                
-                header("Location: FeaturedImages.php");
+                header("Location: FeaturedImages.php?success=1");
                 exit();
-            } else {
-                error_log("Database deletion failed: " . mysqli_stmt_error($stmt_delete));
-                mysqli_stmt_close($stmt_delete);
             }
+            mysqli_stmt_close($stmt_delete);
         }
-        
         mysqli_stmt_close($stmt);
-        die("An error occurred while deleting the image record.");
+        header("Location: FeaturedImages.php?error=1");
+        exit();
     } else {
-        echo "Image not found!";
         mysqli_stmt_close($stmt);
+        echo "Image not found!";
     }
 }
 
 /**
- * Securely delete a file with validation
- * 
- * @param string $filePath The path to the file to delete
- * @param string $allowedDirectory The directory where files are allowed to be deleted from
- * @return bool True if file was deleted successfully, false otherwise
+ * Securely delete a file inside allowed directory
  */
-function secureDeleteFile($filePath, $allowedDirectory) {
-    // Normalize paths
-    $realFilePath = realpath($filePath);
+function secureDeleteFile($filename, $allowedDirectory) {
     $realAllowedDir = realpath($allowedDirectory);
-    
     if ($realAllowedDir === false) {
         error_log("Allowed directory does not exist: " . $allowedDirectory);
         return false;
     }
-    
-    $realAllowedDir = $realAllowedDir . DIRECTORY_SEPARATOR;
-    
-    // Validate that the file exists
-    if ($realFilePath === false || !file_exists($realFilePath)) {
-        error_log("File does not exist: " . $filePath);
+    $realAllowedDir .= DIRECTORY_SEPARATOR;
+
+    $safeName = basename($filename);
+    if (!preg_match('/^[a-zA-Z0-9_\-\.]+$/', $safeName)) {
+        error_log("Invalid filename pattern: " . $safeName);
         return false;
     }
-    
-    // Ensure the file is within the allowed directory (directory traversal protection)
-    if (strpos($realFilePath, $realAllowedDir) !== 0) {
-        error_log("Security warning: Attempted to delete file outside allowed directory. File: " . $realFilePath . ", Allowed: " . $realAllowedDir);
+
+    $filePath = $realAllowedDir . $safeName;
+    $realFilePath = realpath($filePath);
+
+    if ($realFilePath === false || strpos($realFilePath, $realAllowedDir) !== 0) {
+        error_log("File outside allowed dir: " . $filePath);
         return false;
     }
-    
-    // Validate it's actually a file (not a directory)
+
     if (!is_file($realFilePath)) {
-        error_log("Security warning: Attempted to delete a non-file: " . $realFilePath);
+        error_log("Not a file: " . $realFilePath);
         return false;
     }
-    
-    // Additional security: validate filename pattern
-    $filename = basename($realFilePath);
-    if (!preg_match('/^[a-zA-Z0-9_\-\.]+$/', $filename)) {
-        error_log("Security warning: Invalid filename pattern: " . $filename);
-        return false;
-    }
-    
-    // Check file permissions before deletion
+
     if (!is_writable($realFilePath)) {
-        error_log("Cannot delete file: No write permissions for " . $realFilePath);
+        error_log("No permission to delete: " . $realFilePath);
         return false;
     }
-    
-    // Attempt to delete the file
-    if (unlink($realFilePath)) {
-        return true;
-    } else {
-        error_log("Failed to delete file: " . $realFilePath);
-        return false;
-    }
+
+    return unlink($realFilePath);
 }
 
-// Generate CSRF token if it doesn't exist
+// CSRF token
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -152,15 +122,13 @@ if (!isset($_SESSION['csrf_token'])) {
 $sql = "SELECT * FROM featured_images";
 $result = mysqli_query($conn, $sql);
 
-// Sanitize home URL for HTML output
+// Home URL
 $homeUrl = $isLoggedIn ? 'CusHome.php' : 'index.php';
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Featured Images</title>
     <link rel="icon" href="Logo/logo.png" type="image/x-icon">
     <link rel="stylesheet" href="styles.css">
@@ -170,32 +138,27 @@ $homeUrl = $isLoggedIn ? 'CusHome.php' : 'index.php';
             margin: 0 auto;
             padding: 20px;
         }
-
         .images-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
         }
-
         .image-card {
             position: relative;
             overflow: hidden;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-
         .image-card img {
             width: 100%;
             height: auto;
             border-radius: 10px;
         }
-
         .delete-form {
             position: absolute;
             top: 10px;
             right: 10px;
         }
-
         .btn-delete {
             background-color: rgba(255, 0, 0, 0.8);
             color: #fff;
@@ -206,11 +169,9 @@ $homeUrl = $isLoggedIn ? 'CusHome.php' : 'index.php';
             font-size: 14px;
             transition: background-color 0.3s ease;
         }
-
         .btn-delete:hover {
             background-color: rgba(255, 0, 0, 1);
         }
-        
         .success-message {
             background-color: #d4edda;
             color: #155724;
@@ -219,7 +180,6 @@ $homeUrl = $isLoggedIn ? 'CusHome.php' : 'index.php';
             margin-bottom: 20px;
             border: 1px solid #c3e6cb;
         }
-        
         .error-message {
             background-color: #f8d7da;
             color: #721c24;
@@ -260,34 +220,28 @@ $homeUrl = $isLoggedIn ? 'CusHome.php' : 'index.php';
     <section class="featured-images-section">
         <div class="container">
             <h2>Manage Featured Images</h2>
-            
-            <!-- Display success/error messages if needed -->
-            <?php
-            if (isset($_GET['success']) && $_GET['success'] == '1') {
-                echo '<div class="success-message">Image deleted successfully!</div>';
-            }
-            if (isset($_GET['error']) && $_GET['error'] == '1') {
-                echo '<div class="error-message">Error deleting image. Please try again.</div>';
-            }
-            ?>
-            
+
+            <?php if (isset($_GET['success'])): ?>
+                <div class="success-message">Image deleted successfully!</div>
+            <?php elseif (isset($_GET['error'])): ?>
+                <div class="error-message">Error deleting image. Please try again.</div>
+            <?php endif; ?>
+
             <div class="images-grid">
-                <?php
-                if (mysqli_num_rows($result) > 0) {
-                    while ($row = mysqli_fetch_assoc($result)) {
-                        echo '<div class="image-card">';
-                        echo '<img src="uploads/' . htmlspecialchars($row['image_path'], ENT_QUOTES, 'UTF-8') . '" alt="Featured Image">';
-                        echo '<form method="POST" action="FeaturedImages.php" class="delete-form">';
-                        echo '<input type="hidden" name="image_id" value="' . htmlspecialchars($row['id'], ENT_QUOTES, 'UTF-8') . '">';
-                        echo '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') . '">';
-                        echo '<button type="submit" name="delete_image" class="btn-delete" onclick="return confirm(\'Are you sure you want to delete this image?\')">Delete</button>';
-                        echo '</form>';
-                        echo '</div>';
-                    }
-                } else {
-                    echo '<p>No featured images found.</p>';
-                }
-                ?>
+                <?php if (mysqli_num_rows($result) > 0): ?>
+                    <?php while ($row = mysqli_fetch_assoc($result)): ?>
+                        <div class="image-card">
+                            <img src="uploads/<?php echo htmlspecialchars($row['image_path'], ENT_QUOTES, 'UTF-8'); ?>" alt="Featured Image">
+                            <form method="POST" action="FeaturedImages.php" class="delete-form">
+                                <input type="hidden" name="image_id" value="<?php echo (int)$row['id']; ?>">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
+                                <button type="submit" name="delete_image" class="btn-delete" onclick="return confirm('Are you sure you want to delete this image?')">Delete</button>
+                            </form>
+                        </div>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <p>No featured images found.</p>
+                <?php endif; ?>
             </div>
         </div>
     </section>
@@ -333,6 +287,5 @@ $homeUrl = $isLoggedIn ? 'CusHome.php' : 'index.php';
         </div>
     </div>
 </footer>
-
 </body>
 </html>
