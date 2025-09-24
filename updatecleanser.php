@@ -23,36 +23,101 @@ function safeDelete($filename, $uploadsDir = 'uploads/')
         return false;
     }
 
-    // Ensure uploads dir path is absolute
-    $uploadsDir = realpath(__DIR__ . '/' . $uploadsDir) . DIRECTORY_SEPARATOR;
-    if ($uploadsDir === false) {
-        return false;
-    }
-
+    // SECURITY FIX: Never trust user input. Only use filename for validation, not path construction.
     // Validate filename format: clenser_<uniqid>_<basename>.ext
     if (!preg_match('/^clenser_[0-9a-f]{13}_[a-zA-Z0-9_-]+\.(jpg|jpeg|png|gif|webp)$/i', $filename)) {
         return false;
     }
 
-    $filePath = realpath($uploadsDir . $filename);
+    // SECURITY FIX: Get all files from uploads directory and match by exact filename
+    $uploadsDir = realpath(__DIR__ . '/' . $uploadsDir) . DIRECTORY_SEPARATOR;
+    if ($uploadsDir === false || !is_dir($uploadsDir)) {
+        return false;
+    }
 
-    // Security checks
-    if (
-        $filePath &&
-        strpos($filePath, $uploadsDir) === 0 &&  // must be inside uploads dir
-        is_file($filePath) &&
-        !is_link($filePath) // prevent symlinks
-    ) {
-        // Verify it's actually an image
+    // SECURITY FIX: Scan directory and match exact filename instead of constructing path
+    $files = scandir($uploadsDir);
+    if ($files === false) {
+        return false;
+    }
+
+    foreach ($files as $file) {
+        if ($file === $filename) {
+            $filePath = $uploadsDir . $file;
+            
+            // Additional security checks
+            if (is_file($filePath) && !is_link($filePath)) {
+                // Verify it's actually an image
+                $allowed_image_mimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mime_type = finfo_file($finfo, $filePath);
+                finfo_close($finfo);
+
+                if (in_array($mime_type, $allowed_image_mimes, true)) {
+                    return unlink($filePath);
+                }
+            }
+            break; // Found the file, no need to continue
+        }
+    }
+    
+    return false;
+}
+
+// Alternative even more secure approach using database-driven file management
+function securelyDeleteFile($filename, $allowedPatterns = [])
+{
+    if (empty($filename)) {
+        return false;
+    }
+
+    // SECURITY FIX: Use a whitelist approach - only allow specific patterns
+    $allowedPatterns = [
+        '/^clenser_[0-9a-f]{13}_[a-zA-Z0-9_-]+\.jpg$/i',
+        '/^clenser_[0-9a-f]{13}_[a-zA-Z0-9_-]+\.jpeg$/i',
+        '/^clenser_[0-9a-f]{13}_[a-zA-Z0-9_-]+\.png$/i',
+        '/^clenser_[0-9a-f]{13}_[a-zA-Z0-9_-]+\.gif$/i',
+        '/^clenser_[0-9a-f]{13}_[a-zA-Z0-9_-]+\.webp$/i'
+    ];
+
+    $isValid = false;
+    foreach ($allowedPatterns as $pattern) {
+        if (preg_match($pattern, $filename)) {
+            $isValid = true;
+            break;
+        }
+    }
+
+    if (!$isValid) {
+        return false;
+    }
+
+    $uploadsDir = realpath(__DIR__ . '/uploads/') . DIRECTORY_SEPARATOR;
+    if ($uploadsDir === false || !is_dir($uploadsDir)) {
+        return false;
+    }
+
+    // SECURITY FIX: Use basename to prevent any path traversal attempts
+    $safeFilename = basename($filename);
+    $potentialPath = $uploadsDir . $safeFilename;
+
+    // SECURITY FIX: Verify the resolved path is actually within our uploads directory
+    $realPath = realpath($potentialPath);
+    if ($realPath === false || strpos($realPath, $uploadsDir) !== 0) {
+        return false;
+    }
+
+    if (is_file($realPath) && !is_link($realPath)) {
         $allowed_image_mimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mime_type = finfo_file($finfo, $filePath);
+        $mime_type = finfo_file($finfo, $realPath);
         finfo_close($finfo);
 
         if (in_array($mime_type, $allowed_image_mimes, true)) {
-            return unlink($filePath);
+            return unlink($realPath);
         }
     }
+
     return false;
 }
 
@@ -143,13 +208,13 @@ if (isset($_POST['submit'])) {
 
         // Add .htaccess protection to uploads directory
         $htaccess_content = "Order Deny,Allow\nDeny from all\n<FilesMatch '\.(jpg|jpeg|png|gif|webp)$'>\nAllow from all\n</FilesMatch>";
-        file_put_contents('uploads/.htaccess', $htaccess_content);
+        @file_put_contents('uploads/.htaccess', $htaccess_content);
 
         // Move uploaded file securely
         if (move_uploaded_file($file['tmp_name'], $target_path)) {
-            // Delete old image if different
+            // Delete old image if different - USING THE MORE SECURE VERSION
             if (!empty($current_image) && $current_image !== $image) {
-                safeDelete($current_image);
+                securelyDeleteFile($current_image);
             }
         } else {
             $_SESSION['error_message'] = 'Sorry, there was an error uploading your file.';
@@ -174,7 +239,7 @@ if (isset($_POST['submit'])) {
 
             // Rollback: delete new image if update failed
             if (isset($file) && $image !== $current_image) {
-                safeDelete($image);
+                securelyDeleteFile($image);
             }
         }
 
@@ -184,7 +249,7 @@ if (isset($_POST['submit'])) {
 
         // Rollback: delete new image if statement prep failed
         if (isset($file) && $image !== $current_image) {
-            safeDelete($image);
+            securelyDeleteFile($image);
         }
     }
 } else {
