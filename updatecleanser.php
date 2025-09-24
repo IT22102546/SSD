@@ -23,14 +23,25 @@ function safeDelete($filename, $uploadsDir = 'uploads/')
         return false;
     }
 
+    // Ensure uploads dir path is absolute
     $uploadsDir = realpath(__DIR__ . '/' . $uploadsDir) . DIRECTORY_SEPARATOR;
-    $filePath   = realpath($uploadsDir . $filename);
+    if ($uploadsDir === false) {
+        return false;
+    }
 
+    // Validate filename format: clenser_<uniqid>_<basename>.ext
+    if (!preg_match('/^clenser_[0-9a-f]{13}_[a-zA-Z0-9_-]+\.(jpg|jpeg|png|gif|webp)$/i', $filename)) {
+        return false;
+    }
+
+    $filePath = realpath($uploadsDir . $filename);
+
+    // Security checks
     if (
         $filePath &&
-        strpos($filePath, $uploadsDir) === 0 &&
+        strpos($filePath, $uploadsDir) === 0 &&  // must be inside uploads dir
         is_file($filePath) &&
-        preg_match('/^clenser_[a-zA-Z0-9]+[_a-zA-Z0-9-]*\.(jpg|jpeg|png|gif|webp)$/i', $filename)
+        !is_link($filePath) // prevent symlinks
     ) {
         // Verify it's actually an image
         $allowed_image_mimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -38,7 +49,7 @@ function safeDelete($filename, $uploadsDir = 'uploads/')
         $mime_type = finfo_file($finfo, $filePath);
         finfo_close($finfo);
 
-        if (in_array($mime_type, $allowed_image_mimes)) {
+        if (in_array($mime_type, $allowed_image_mimes, true)) {
             return unlink($filePath);
         }
     }
@@ -99,7 +110,7 @@ if (isset($_POST['submit'])) {
         $file_mime_type = finfo_file($finfo, $file['tmp_name']);
         finfo_close($finfo);
 
-        if (!in_array($file_mime_type, $allowed_types)) {
+        if (!in_array($file_mime_type, $allowed_types, true)) {
             $_SESSION['error_message'] = 'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.';
             header("Location: editClenser.php?Id=" . $id);
             exit();
@@ -107,7 +118,7 @@ if (isset($_POST['submit'])) {
 
         // Validate file extension
         $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        if (!in_array($file_extension, $allowed_extensions)) {
+        if (!in_array($file_extension, $allowed_extensions, true)) {
             $_SESSION['error_message'] = 'Invalid file extension.';
             header("Location: editClenser.php?Id=" . $id);
             exit();
@@ -121,7 +132,7 @@ if (isset($_POST['submit'])) {
         }
 
         // Generate secure unique filename
-        $sanitized_basename = preg_replace('/[^a-zA-Z0-9\._-]/', '', pathinfo($file['name'], PATHINFO_FILENAME));
+        $sanitized_basename = preg_replace('/[^a-zA-Z0-9_-]/', '', pathinfo($file['name'], PATHINFO_FILENAME));
         $image = 'clenser_' . uniqid() . '_' . $sanitized_basename . '.' . $file_extension;
         $target_path = "uploads/" . $image;
 
