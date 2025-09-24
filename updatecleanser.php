@@ -2,8 +2,6 @@
 session_start();
 include 'connect.php';
 
-
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     $_SESSION['error_message'] = 'Method not allowed.';
     header("Location: Clenser.php");
@@ -63,37 +61,64 @@ if (isset($_POST['submit'])) {
         
         // Validate file
         $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
         $max_size = 2 * 1024 * 1024; // 2MB
         
-        if (!in_array($file['type'], $allowed_types)) {
+        // Validate file type
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $file_mime_type = finfo_file($finfo, $file['tmp_name']);
+        finfo_close($finfo);
+        
+        if (!in_array($file_mime_type, $allowed_types)) {
             $_SESSION['error_message'] = 'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.';
             header("Location: editClenser.php?Id=" . $id);
             exit();
         }
         
+        // Validate file extension
+        $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($file_extension, $allowed_extensions)) {
+            $_SESSION['error_message'] = 'Invalid file extension.';
+            header("Location: editClenser.php?Id=" . $id);
+            exit();
+        }
+        
+        // Validate file size
         if ($file['size'] > $max_size) {
             $_SESSION['error_message'] = 'File size too large. Maximum 2MB allowed.';
             header("Location: editClenser.php?Id=" . $id);
             exit();
         }
         
-        // Generate unique filename to prevent conflicts
-        $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        $image = uniqid('clenser_') . '.' . $file_extension;
+        // Generate secure unique filename
+        $sanitized_basename = preg_replace('/[^a-zA-Z0-9\._-]/', '', pathinfo($file['name'], PATHINFO_FILENAME));
+        $image = 'clenser_' . uniqid() . '_' . $sanitized_basename . '.' . $file_extension;
         $target_path = "uploads/" . $image;
+        
+        // Ensure uploads directory exists and is secure
+        if (!is_dir('uploads')) {
+            mkdir('uploads', 0755, true);
+        }
         
         // Move uploaded file securely
         if (move_uploaded_file($file['tmp_name'], $target_path)) {
-            // Delete old image if it exists and is different from new one
+            // Secure deletion of old image
             if (!empty($current_image) && $current_image !== $image) {
                 $old_image_path = "uploads/" . $current_image;
-                if (file_exists($old_image_path) && is_file($old_image_path)) {
-                    // Security check: ensure the file is within the uploads directory
-                    $real_old_path = realpath($old_image_path);
-                    $real_uploads_path = realpath('uploads/');
+                
+                // Security validation before deletion
+                $real_old_path = realpath($old_image_path);
+                $real_uploads_path = realpath('uploads/');
+                
+                // Ensure the file exists, is within the uploads directory, and is a file (not a directory)
+                if ($real_old_path && 
+                    $real_uploads_path && 
+                    strpos($real_old_path, $real_uploads_path) === 0 &&
+                    is_file($real_old_path)) {
                     
-                    if ($real_old_path && $real_uploads_path && strpos($real_old_path, $real_uploads_path) === 0) {
-                        unlink($old_image_path);
+                    // Additional safety check: verify the filename matches expected pattern
+                    if (preg_match('/^clenser_[a-zA-Z0-9]+[_a-zA-Z0-9-]*\.(jpg|jpeg|png|gif|webp)$/i', $current_image)) {
+                        unlink($real_old_path);
                     }
                 }
             }
@@ -117,11 +142,39 @@ if (isset($_POST['submit'])) {
             $_SESSION['success_message'] = 'Cleanser updated successfully.';
         } else {
             $_SESSION['error_message'] = 'Error updating cleanser: ' . mysqli_stmt_error($stmt);
+            
+            // If update failed and we uploaded a new image, delete the new image
+            if (isset($file) && $image !== $current_image) {
+                $new_image_path = "uploads/" . $image;
+                $real_new_path = realpath($new_image_path);
+                $real_uploads_path = realpath('uploads/');
+                
+                if ($real_new_path && 
+                    $real_uploads_path && 
+                    strpos($real_new_path, $real_uploads_path) === 0 &&
+                    is_file($real_new_path)) {
+                    unlink($real_new_path);
+                }
+            }
         }
         
         mysqli_stmt_close($stmt);
     } else {
         $_SESSION['error_message'] = 'Database error. Please try again.';
+        
+        // If prepared statement failed and we uploaded a new image, delete the new image
+        if (isset($file) && $image !== $current_image) {
+            $new_image_path = "uploads/" . $image;
+            $real_new_path = realpath($new_image_path);
+            $real_uploads_path = realpath('uploads/');
+            
+            if ($real_new_path && 
+                $real_uploads_path && 
+                strpos($real_new_path, $real_uploads_path) === 0 &&
+                is_file($real_new_path)) {
+                unlink($real_new_path);
+            }
+        }
     }
 } else {
     $_SESSION['error_message'] = 'Invalid form submission.';

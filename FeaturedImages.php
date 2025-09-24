@@ -47,10 +47,13 @@ if (isset($_POST['delete_image'])) {
         $row = mysqli_fetch_assoc($result_fetch_image);
         $image_path = $row['image_path'];
         
-        // Delete the image file from the server
+        // SECURE FILE DELETION: Delete the image file from the server with validation
         $file_path = 'uploads/' . $image_path;
-        if (file_exists($file_path) && is_file($file_path)) {
-            unlink($file_path);
+        if (secureDeleteFile($file_path, 'uploads')) {
+            error_log("Successfully deleted image: " . $file_path);
+        } else {
+            error_log("Failed to delete image: " . $file_path);
+            // Continue with database deletion even if file deletion fails
         }
         
         // Delete the image record using prepared statement
@@ -59,20 +62,84 @@ if (isset($_POST['delete_image'])) {
         
         if ($stmt_delete) {
             mysqli_stmt_bind_param($stmt_delete, "i", $image_id);
-            mysqli_stmt_execute($stmt_delete);
-            mysqli_stmt_close($stmt_delete);
+            if (mysqli_stmt_execute($stmt_delete)) {
+                // Regenerate CSRF token after successful action
+                $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+                mysqli_stmt_close($stmt_delete);
+                mysqli_stmt_close($stmt);
+                
+                header("Location: FeaturedImages.php");
+                exit();
+            } else {
+                error_log("Database deletion failed: " . mysqli_stmt_error($stmt_delete));
+                mysqli_stmt_close($stmt_delete);
+            }
         }
         
         mysqli_stmt_close($stmt);
-        
-        // Regenerate CSRF token after successful action
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-        
-        header("Location: FeaturedImages.php");
-        exit();
+        die("An error occurred while deleting the image record.");
     } else {
         echo "Image not found!";
         mysqli_stmt_close($stmt);
+    }
+}
+
+/**
+ * Securely delete a file with validation
+ * 
+ * @param string $filePath The path to the file to delete
+ * @param string $allowedDirectory The directory where files are allowed to be deleted from
+ * @return bool True if file was deleted successfully, false otherwise
+ */
+function secureDeleteFile($filePath, $allowedDirectory) {
+    // Normalize paths
+    $realFilePath = realpath($filePath);
+    $realAllowedDir = realpath($allowedDirectory);
+    
+    if ($realAllowedDir === false) {
+        error_log("Allowed directory does not exist: " . $allowedDirectory);
+        return false;
+    }
+    
+    $realAllowedDir = $realAllowedDir . DIRECTORY_SEPARATOR;
+    
+    // Validate that the file exists
+    if ($realFilePath === false || !file_exists($realFilePath)) {
+        error_log("File does not exist: " . $filePath);
+        return false;
+    }
+    
+    // Ensure the file is within the allowed directory (directory traversal protection)
+    if (strpos($realFilePath, $realAllowedDir) !== 0) {
+        error_log("Security warning: Attempted to delete file outside allowed directory. File: " . $realFilePath . ", Allowed: " . $realAllowedDir);
+        return false;
+    }
+    
+    // Validate it's actually a file (not a directory)
+    if (!is_file($realFilePath)) {
+        error_log("Security warning: Attempted to delete a non-file: " . $realFilePath);
+        return false;
+    }
+    
+    // Additional security: validate filename pattern
+    $filename = basename($realFilePath);
+    if (!preg_match('/^[a-zA-Z0-9_\-\.]+$/', $filename)) {
+        error_log("Security warning: Invalid filename pattern: " . $filename);
+        return false;
+    }
+    
+    // Check file permissions before deletion
+    if (!is_writable($realFilePath)) {
+        error_log("Cannot delete file: No write permissions for " . $realFilePath);
+        return false;
+    }
+    
+    // Attempt to delete the file
+    if (unlink($realFilePath)) {
+        return true;
+    } else {
+        error_log("Failed to delete file: " . $realFilePath);
+        return false;
     }
 }
 
@@ -84,6 +151,9 @@ if (!isset($_SESSION['csrf_token'])) {
 // Fetch all featured images
 $sql = "SELECT * FROM featured_images";
 $result = mysqli_query($conn, $sql);
+
+// Sanitize home URL for HTML output
+$homeUrl = $isLoggedIn ? 'CusHome.php' : 'index.php';
 ?>
 
 <!DOCTYPE html>
@@ -95,7 +165,6 @@ $result = mysqli_query($conn, $sql);
     <link rel="icon" href="Logo/logo.png" type="image/x-icon">
     <link rel="stylesheet" href="styles.css">
     <style>
-        /* Your existing CSS styles */
         .featured-images-section .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -141,17 +210,35 @@ $result = mysqli_query($conn, $sql);
         .btn-delete:hover {
             background-color: rgba(255, 0, 0, 1);
         }
+        
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
     </style>
 </head>
 <body>
 <header>
     <div class="container header-container">
         <div class="logo">
-            <img src="Logo/logo.png">
+            <img src="Logo/logo.png" alt="Sulos Owshadham Logo">
         </div>
         <nav>
             <ul>
-                <li><a href="<?php echo $isLoggedIn ? 'CusHome.php' : 'index.php'; ?>">Home</a></li>
+                <li><a href="<?php echo htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8'); ?>">Home</a></li>
                 <li><a href="Product.php">Products</a></li>
                 <li><a href="About.php">About</a></li>
                 <li><a href="contactus.php">Contact</a></li>
@@ -159,8 +246,8 @@ $result = mysqli_query($conn, $sql);
         </nav>
         <div class="header-buttons">
             <?php if ($isLoggedIn): ?>
-                <span class="welcome-message">Welcome, <?php echo htmlspecialchars($username); ?></span>
-                <a href="cart.php" class="btn">cart</a>
+                <span class="welcome-message">Welcome, <?php echo htmlspecialchars($username, ENT_QUOTES, 'UTF-8'); ?></span>
+                <a href="cart.php" class="btn">Cart</a>
                 <a href="logout.php" class="btn">Log Out</a>
             <?php else: ?>
                 <a href="Signin.php" class="btn">Log In</a>
@@ -174,15 +261,25 @@ $result = mysqli_query($conn, $sql);
         <div class="container">
             <h2>Manage Featured Images</h2>
             
+            <!-- Display success/error messages if needed -->
+            <?php
+            if (isset($_GET['success']) && $_GET['success'] == '1') {
+                echo '<div class="success-message">Image deleted successfully!</div>';
+            }
+            if (isset($_GET['error']) && $_GET['error'] == '1') {
+                echo '<div class="error-message">Error deleting image. Please try again.</div>';
+            }
+            ?>
+            
             <div class="images-grid">
                 <?php
                 if (mysqli_num_rows($result) > 0) {
                     while ($row = mysqli_fetch_assoc($result)) {
                         echo '<div class="image-card">';
-                        echo '<img src="uploads/' . htmlspecialchars($row['image_path']) . '" alt="Featured Image">';
+                        echo '<img src="uploads/' . htmlspecialchars($row['image_path'], ENT_QUOTES, 'UTF-8') . '" alt="Featured Image">';
                         echo '<form method="POST" action="FeaturedImages.php" class="delete-form">';
-                        echo '<input type="hidden" name="image_id" value="' . htmlspecialchars($row['id']) . '">';
-                        echo '<input type="hidden" name="csrf_token" value="' . $_SESSION['csrf_token'] . '">';
+                        echo '<input type="hidden" name="image_id" value="' . htmlspecialchars($row['id'], ENT_QUOTES, 'UTF-8') . '">';
+                        echo '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') . '">';
                         echo '<button type="submit" name="delete_image" class="btn-delete" onclick="return confirm(\'Are you sure you want to delete this image?\')">Delete</button>';
                         echo '</form>';
                         echo '</div>';

@@ -47,17 +47,37 @@ if (isset($_POST['Id'])) {
             $row = mysqli_fetch_assoc($result);
             $imagePath = 'uploads/' . $row['image'];
             
-            // Delete the image file safely
-            if (file_exists($imagePath) && is_file($imagePath)) {
-                $realImagePath = realpath($imagePath);
-                $realUploadsPath = realpath('uploads/');
+          // Delete the image file safely with enhanced checks
+if (file_exists($imagePath) && is_file($imagePath)) {
+    $realImagePath = realpath($imagePath);
+    $realUploadsPath = realpath('uploads/');
+    
+    if ($realImagePath && $realUploadsPath) {
+        // Verify file is within the uploads directory
+        if (strpos($realImagePath, $realUploadsPath) === 0) {
+            // Additional security checks
+            $relativePath = str_replace($realUploadsPath, '', $realImagePath);
+            
+            if (strpos($relativePath, '..') === false && 
+                strpos($relativePath, chr(0)) === false) { // null byte check
                 
-                if ($realImagePath && $realUploadsPath && strpos($realImagePath, $realUploadsPath) === 0) {
-                    unlink($imagePath);
+                // Check if file is writable
+                if (is_writable($realImagePath)) {
+                    if (!unlink($realImagePath)) {
+                        error_log("Failed to delete file: " . $realImagePath);
+                        // Decide whether to proceed with DB deletion
+                    }
                 } else {
-                    error_log("Security alert: Attempted to delete file outside uploads directory: " . $imagePath);
+                    error_log("File not writable: " . $realImagePath);
                 }
+            } else {
+                error_log("Security alert: Path traversal attempt: " . $imagePath);
             }
+        } else {
+            error_log("Security alert: Attempted to delete file outside uploads directory: " . $imagePath);
+        }
+    }
+}
             
             mysqli_stmt_close($stmt);
             
